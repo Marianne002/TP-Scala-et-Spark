@@ -1,0 +1,338 @@
+PS C:\Users\gdjma\Documents\1_STUDIES\DC\DC_2026\DEV\SCALA\TP_Scala_Spark_Analyse_Fraude> C:\spark\bin\spark-shell.cmd --driver-memory 4g -i demo.scala
+WARNING: Using incubator modules: jdk.incubator.vector
+26/01/13 15:16:48 WARN Shell: Did not find winutils.exe: java.io.FileNotFoundException: java.io.FileNotFoundException: HADOOP_HOME and hadoop.home.dir are unset. -see https://cwiki.apache.org/confluence/display/HADOOP2/WindowsProblems
+Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+Welcome to
+      ____              __
+     / __/__  ___ _____/ /__
+    _\ \/ _ \/ _ `/ __/  '_/
+   /___/ .__/\_,_/_/ /_/\_\   version 4.1.1
+      /_/
+
+Using Scala version 2.13.17 (OpenJDK 64-Bit Server VM, Java 17.0.17)
+Type in expressions to have them evaluated.
+Type :help for more information.
+26/01/13 15:16:52 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Spark context Web UI available at http://MSI:4040
+Spark context available as 'sc' (master = local[*], app id = local-1768313812834).
+Spark session available as 'spark'.
+
+=== PARTIE 1 : Chargement et Prise en main ===
+
+--- Inspection des fichiers ---
+
+*** Dataset: Transactions ***
+Nombre de colonnes : 12
+root
+ |-- id: integer (nullable = true)
+ |-- date: timestamp (nullable = true)
+ |-- client_id: integer (nullable = true)
+ |-- card_id: integer (nullable = true)
+ |-- amount: string (nullable = true)
+ |-- use_chip: string (nullable = true)
+ |-- merchant_id: integer (nullable = true)
+ |-- merchant_city: string (nullable = true)
+ |-- merchant_state: string (nullable = true)
+ |-- zip: double (nullable = true)
+ |-- mcc: integer (nullable = true)
+ |-- errors: string (nullable = true)
+
++-------+-------------------+---------+-------+-------+------------------+-----------+-------------+--------------+-------+----+------+
+|id     |date               |client_id|card_id|amount |use_chip          |merchant_id|merchant_city|merchant_state|zip    |mcc |errors|
++-------+-------------------+---------+-------+-------+------------------+-----------+-------------+--------------+-------+----+------+
+|7475327|2010-01-01 00:01:00|1556     |2972   |$-77.00|Swipe Transaction |59935      |Beulah       |ND            |58523.0|5499|NULL  |
+|7475328|2010-01-01 00:02:00|561      |4575   |$14.57 |Swipe Transaction |67570      |Bettendorf   |IA            |52722.0|5311|NULL  |
+|7475329|2010-01-01 00:02:00|1129     |102    |$80.00 |Swipe Transaction |27092      |Vista        |CA            |92084.0|4829|NULL  |
+|7475331|2010-01-01 00:05:00|430      |2860   |$200.00|Swipe Transaction |27092      |Crown Point  |IN            |46307.0|4829|NULL  |
+|7475332|2010-01-01 00:06:00|848      |3915   |$46.41 |Swipe Transaction |13051      |Harwood      |MD            |20776.0|5813|NULL  |
+|7475333|2010-01-01 00:07:00|1807     |165    |$4.81  |Swipe Transaction |20519      |Bronx        |NY            |10464.0|5942|NULL  |
+|7475334|2010-01-01 00:09:00|1556     |2972   |$77.00 |Swipe Transaction |59935      |Beulah       |ND            |58523.0|5499|NULL  |
+|7475335|2010-01-01 00:14:00|1684     |2140   |$26.46 |Online Transaction|39021      |ONLINE       |NULL          |NULL   |4784|NULL  |
+|7475336|2010-01-01 00:21:00|335      |5131   |$261.58|Online Transaction|50292      |ONLINE       |NULL          |NULL   |7801|NULL  |
+|7475337|2010-01-01 00:21:00|351      |1112   |$10.74 |Swipe Transaction |3864       |Flushing     |NY            |11355.0|5813|NULL  |
++-------+-------------------+---------+-------+-------+------------------+-----------+-------------+--------------+-------+----+------+
+only showing top 10 rows
+
+*** Dataset: Cards ***
+Nombre de colonnes : 13
+root
+ |-- id: integer (nullable = true)
+ |-- client_id: integer (nullable = true)
+ |-- card_brand: string (nullable = true)
+ |-- card_type: string (nullable = true)
+ |-- card_number: long (nullable = true)
+ |-- expires: string (nullable = true)
+ |-- cvv: integer (nullable = true)
+ |-- has_chip: string (nullable = true)
+ |-- num_cards_issued: integer (nullable = true)
+ |-- credit_limit: string (nullable = true)
+ |-- acct_open_date: string (nullable = true)
+ |-- year_pin_last_changed: integer (nullable = true)
+ |-- card_on_dark_web: string (nullable = true)
+
++----+---------+----------+---------------+----------------+-------+---+--------+----------------+------------+--------------+---------------------+----------------+
+|id  |client_id|card_brand|card_type      |card_number     |expires|cvv|has_chip|num_cards_issued|credit_limit|acct_open_date|year_pin_last_changed|card_on_dark_web|
++----+---------+----------+---------------+----------------+-------+---+--------+----------------+------------+--------------+---------------------+----------------+
+|4524|825      |Visa      |Debit          |4344676511950444|12/2022|623|YES     |2               |$24295      |09/2002       |2008                 |No              |
+|2731|825      |Visa      |Debit          |4956965974959986|12/2020|393|YES     |2               |$21968      |04/2014       |2014                 |No              |
+|3701|825      |Visa      |Debit          |4582313478255491|02/2024|719|YES     |2               |$46414      |07/2003       |2004                 |No              |
+|42  |825      |Visa      |Credit         |4879494103069057|08/2024|693|NO      |1               |$12400      |01/2003       |2012                 |No              |
+|4659|825      |Mastercard|Debit (Prepaid)|5722874738736011|03/2009|75 |YES     |1               |$28         |09/2008       |2009                 |No              |
+|4537|1746     |Visa      |Credit         |4404898874682993|09/2003|736|YES     |1               |$27500      |09/2003       |2012                 |No              |
+|1278|1746     |Visa      |Debit          |4001482973848631|07/2022|972|YES     |2               |$28508      |02/2011       |2011                 |No              |
+|3687|1746     |Mastercard|Debit          |5627220683410948|06/2022|48 |YES     |2               |$9022       |07/2003       |2015                 |No              |
+|3465|1746     |Mastercard|Debit (Prepaid)|5711382187309326|11/2020|722|YES     |2               |$54         |06/2010       |2015                 |No              |
+|3754|1746     |Mastercard|Debit (Prepaid)|5766121508358701|02/2023|908|YES     |1               |$99         |07/2006       |2012                 |No              |
++----+---------+----------+---------------+----------------+-------+---+--------+----------------+------------+--------------+---------------------+----------------+
+only showing top 10 rows
+
+*** Dataset: Users ***
+Nombre de colonnes : 14
+root
+ |-- id: integer (nullable = true)
+ |-- current_age: integer (nullable = true)
+ |-- retirement_age: integer (nullable = true)
+ |-- birth_year: integer (nullable = true)
+ |-- birth_month: integer (nullable = true)
+ |-- gender: string (nullable = true)
+ |-- address: string (nullable = true)
+ |-- latitude: double (nullable = true)
+ |-- longitude: double (nullable = true)
+ |-- per_capita_income: string (nullable = true)
+ |-- yearly_income: string (nullable = true)
+ |-- total_debt: string (nullable = true)
+ |-- credit_score: integer (nullable = true)
+ |-- num_credit_cards: integer (nullable = true)
+
++----+-----------+--------------+----------+-----------+------+------------------------+--------+---------+-----------------+-------------+----------+------------+----------------+
+|id  |current_age|retirement_age|birth_year|birth_month|gender|address                 |latitude|longitude|per_capita_income|yearly_income|total_debt|credit_score|num_credit_cards|
++----+-----------+--------------+----------+-----------+------+------------------------+--------+---------+-----------------+-------------+----------+------------+----------------+
+|825 |53         |66            |1966      |11         |Female|462 Rose Lane           |34.15   |-117.76  |$29278           |$59696       |$127613   |787         |5             
+  |
+|1746|53         |68            |1966      |12         |Female|3606 Federal Boulevard  |40.76   |-73.74   |$37891           |$77254       |$191349   |701         |5             
+  |
+|1718|81         |67            |1938      |11         |Female|766 Third Drive         |34.02   |-117.89  |$22681           |$33483       |$196      |698         |5             
+  |
+|708 |63         |63            |1957      |1          |Female|3 Madison Street        |40.71   |-73.99   |$163145          |$249925      |$202328   |722         |4             
+  |
+|1164|43         |70            |1976      |9          |Male  |9620 Valley Stream Drive|37.76   |-122.44  |$53797           |$109687      |$183855   |675         |1             
+  |
+|68  |42         |70            |1977      |10         |Male  |58 Birch Lane           |41.55   |-90.6    |$20599           |$41997       |$0        |704         |3             
+  |
+|1075|36         |67            |1983      |12         |Female|5695 Fifth Street       |38.22   |-85.74   |$25258           |$51500       |$102286   |672         |3             
+  |
+|1711|26         |67            |1993      |12         |Male  |1941 Ninth Street       |45.51   |-122.64  |$26790           |$54623       |$114711   |728         |1             
+  |
+|1116|81         |66            |1938      |7          |Female|11 Spruce Avenue        |40.32   |-75.32   |$26273           |$42509       |$2895     |755         |5             
+  |
+|1752|34         |60            |1986      |1          |Female|887 Grant Street        |29.97   |-92.12   |$18730           |$38190       |$81262    |810         |1             
+  |
++----+-----------+--------------+----------+-----------+------+------------------------+--------+---------+-----------------+-------------+----------+------------+----------------+
+only showing top 10 rows
+
+*** Dataset: MCC Codes ***
+Nombre de colonnes : 2
+root
+ |-- mcc_str: string (nullable = false)
+ |-- edited_description: string (nullable = true)
+
++-------+------------------------------------------+
+|mcc_str|edited_description                        |
++-------+------------------------------------------+
+|5812   |Eating Places and Restaurants             |
+|5541   |Service Stations                          |
+|7996   |Amusement Parks, Carnivals, Circuses      |
+|5411   |Grocery Stores, Supermarkets              |
+|4784   |Tolls and Bridge Fees                     |
+|4900   |Utilities - Electric, Gas, Water, Sanitary|
+|5942   |Book Stores                               |
+|5814   |Fast Food Restaurants                     |
+|4829   |Money Transfer                            |
+|5311   |Department Stores                         |
++-------+------------------------------------------+
+only showing top 10 rows
+
+>>> Question 1 : Types suspects ?
+Observation : La colonne 'amount' est vue comme STRING (?  cause du symbole $). Elle doit ?ªtre convertie en DOUBLE.
+Observation : La colonne 'zip' est vue comme DOUBLE. C'est incorrect (un code postal est une cat??gorie/cha??ne), mais pas bloquant ici.
+
+--- Analyse de Volum??trie ---
+
+R??sultats :
+ - Transactions totales : 13305915
+ - Clients uniques (base): 2000
+ - Cartes uniques (base) : 6146
+ - Commer??ants uniques   : 74831
+
+ Interpr??tation : Ce sont les Transactions qui g??n??rent le plus de volume.
+
+
+--- Qualit?? des Donn??es ---
+Indicateur                     | Nombre     | %
+-------------------------------------------------------
+Valeurs manquantes (amount)  | 0          | 0.00 %
+Valeurs manquantes (mcc)  | 0          | 0.00 %
+Valeurs manquantes (merchant_city)  | 0          | 0.00 %
+Valeurs manquantes (errors)  | 13094522   | 98.41 %
+Montant <= 0                   | 670688     | 5.04 %
+Sans code MCC                  | 0          | 0.00 %
+Transactions en Erreur         | 211393     | 1.59 %
+
+=== PARTIE 2 : Analyse des Montants & Temps ===
+--- Statistiques des Montants ---
++-------+------+------+
+|Moyenne|   Min|   Max|
++-------+------+------+
+|  42.98|-500.0|6820.2|
++-------+------+------+
+
+M??diane des montants : 28.99
+--- Distribution par Tranche ---
++-------+-------+
+|tranche|  count|
++-------+-------+
+|  10-50|5271899|
+| 50-200|4139987|
+|   < 10|3574928|
+|  > 200| 319101|
++-------+-------+
+
+--- Analyse Temporelle ---
+Top 5 Heures les plus actives :
++-----+------+
+|heure| count|
++-----+------+
+|   12|953498|
+|   11|943671|
+|    7|901756|
+|   13|900703|
+|   14|887776|
++-----+------+
+only showing top 5 rows
+Transactions par Jour de la semaine :
++------------+-------+
+|jour_semaine|  count|
++------------+-------+
+|         Thu|1918666|
+|         Sat|1902370|
+|         Sun|1899044|
+|         Tue|1897678|
+|         Mon|1896914|
+|         Wed|1895871|
+|         Fri|1895372|
++------------+-------+
+
+Transactions par Mois (Saisonnalit?? ?) :
++----+-------+
+|mois|  count|
++----+-------+
+|   1|1139155|
+|   2|1031351|
+|   3|1145390|
+|   4|1106182|
+|   5|1146194|
+|   6|1118522|
+|   7|1153675|
+|   8|1156873|
+|   9|1117795|
+|  10|1148638|
+|  11|1003488|
+|  12|1038652|
++----+-------+
+
+
+=== PARTIE 3 : Enrichissement & Erreurs ===
+--- Top 10 Cat??gories par Volume et Montant Moyen ---
++-----------------------------+-------+-------------+
+|edited_description           |volume |montant_moyen|
++-----------------------------+-------+-------------+
+|Grocery Stores, Supermarkets |1592584|25.73        |
+|Miscellaneous Food Stores    |1460875|10.65        |
+|Service Stations             |1424711|20.76        |
+|Eating Places and Restaurants|999738 |26.36        |
+|Drug Stores and Pharmacies   |772913 |45.43        |
+|Tolls and Bridge Fees        |674135 |35.39        |
+|Wholesale Clubs              |601942 |62.63        |
+|Money Transfer               |589140 |90.23        |
+|Taxicabs and Limousines      |500662 |23.72        |
+|Fast Food Restaurants        |499659 |26.27        |
++-----------------------------+-------+-------------+
+only showing top 10 rows
+--- Types d'erreurs les plus fr??quents ---
++--------------------+------+
+|errors              |count |
++--------------------+------+
+|Insufficient Balance|130902|
+|Bad PIN             |32119 |
+|Technical Glitch    |26271 |
+|Bad Card Number     |7767  |
+|Bad Expiration      |6161  |
++--------------------+------+
+only showing top 5 rows
+--- Taux d'erreur par Client (Top 5 suspects) ---
++---------+--------+------------+--------------+
+|client_id|total_tx|total_errors|error_rate_pct|
++---------+--------+------------+--------------+
+|      954|   20047|        2935|         14.64|
+|     1189|    7474|         478|           6.4|
+|      363|    9832|         543|          5.52|
+|     1424|   15412|         822|          5.33|
+|     1888|   40105|        2109|          5.26|
++---------+--------+------------+--------------+
+only showing top 5 rows
+--- Taux d'erreur par Carte (Top 5 suspectes) ---
++-------+--------+------------+--------------+
+|card_id|total_tx|total_errors|error_rate_pct|
++-------+--------+------------+--------------+
+|   2220|    6726|        1006|         14.96|
+|   2644|    6530|         954|         14.61|
+|   5586|    6600|         951|         14.41|
+|   4416|     191|          24|         12.57|
+|   5364|    4277|         443|         10.36|
++-------+--------+------------+--------------+
+only showing top 5 rows
+
+=== PARTIE 4 : D??tection de Fraude (Calculs) ===
+--- Exemple d'indicateurs calcul??s (Top 5 montants) ---
++-------+----------+-----+------------+---------+---------+-----------+
+|card_id|       day|nb_tx|total_amount|nb_cities|nb_errors|error_ratio|
++-------+----------+-----+------------+---------+---------+-----------+
+|   5165|2010-09-22|    1|      6820.2|        1|        0|        0.0|
+|   5757|2017-05-30|    3|     6646.75|        2|        1|     0.3333|
+|   3427|2019-01-27|    1|     6613.44|        1|        0|        0.0|
+|   2204|2010-09-05|    6|     6089.18|        3|        0|        0.0|
+|   5406|2012-04-10|    1|     5913.37|        1|        0|        0.0|
++-------+----------+-----+------------+---------+---------+-----------+
+only showing top 5 rows
+--- ALERTE : Cartes Suspectes (DataFrame suspicious_cards) ---
++-------+----------+-----+------------------+---------+-----------+
+|card_id|       day|nb_tx|      total_amount|nb_cities|error_ratio|
++-------+----------+-----+------------------+---------+-----------+
+|   4976|2010-04-29|   13|           1660.49|       11|        0.0|
+|   2040|2011-07-30|   12| 440.5299999999999|       10|        0.0|
+|   2040|2012-03-30|   12| 588.6700000000001|       10|        0.0|
+|   2040|2010-04-21|    9|            478.95|        9|        0.0|
+|   2936|2015-07-31|   12|            435.44|        9|        0.0|
+|   2040|2010-02-24|    9|            463.14|        9|        0.0|
+|   2040|2011-06-26|    9|             366.2|        9|        0.0|
+|   2040|2015-11-22|    9|            380.48|        9|        0.0|
+|   2040|2010-08-03|    9|            384.43|        9|        0.0|
+|   2040|2013-02-02|   11|1015.9399999999998|        9|        0.0|
++-------+----------+-----+------------------+---------+-----------+
+only showing top 10 rows
+Nombre de cas suspects d??tect??s : 390508
+
+=== BONUS : Score de Risque ===
+--- Top 5 Cartes les plus Risqu??es (Score) ---
++-------+----------+----------+------------------+---------+
+|card_id|       day|risk_score|      total_amount|nb_cities|
++-------+----------+----------+------------------+---------+
+|   4976|2010-04-29|  56.66049|           1660.49|       11|
+|   2040|2012-03-30|  50.58867| 588.6700000000001|       10|
+|   2040|2011-07-30|  50.44053| 440.5299999999999|       10|
+|   2040|2013-02-02|  46.01594|1015.9399999999998|        9|
+|   2040|2015-07-06|  45.77943| 779.4299999999998|        9|
++-------+----------+----------+------------------+---------+
+only showing top 5 rows

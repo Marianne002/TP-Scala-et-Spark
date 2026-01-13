@@ -1,0 +1,31 @@
+# --- Scala & Build Tools ---
+.scala-build/
+.bsp/
+
+# --- Data & Outputs  ---
+# On ignore le dossier de données car les fichiers sont trop lourds
+data/
+
+
+# --- Spark Specific ---
+spark-warehouse/
+metastore_db/
+derby.log
+*.log
+
+# --- IDE & Editors (VS Code, Metals, IntelliJ) ---
+.vscode/
+.metals/
+.bloop/
+.idea/
+*.iml
+.history/
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Autres fichiers temporaires ---
+*~
+*.swp
